@@ -10,14 +10,12 @@ import praw
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
 nltk.download('vader_lexicon')
-with open('pw.txt', 'r') as f:
-    pw = f.read()
 
 reddit = praw.Reddit(
     client_id="ZVb-XoRjJKrevskHU97pIA",
     client_secret="WsmaqLFX32sdgm-0X9rZ4HB6IiL16Q",
     username='mynameisreefer',
-    password=pw,
+    password='passwort123,
     user_agent="social_stocks")
 
 st.title("Social Stocks")
