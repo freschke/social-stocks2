@@ -9,6 +9,7 @@ import nltk
 import praw
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import datetime
+import yfinance as yf
 
 nltk.download('vader_lexicon')
 
@@ -35,7 +36,7 @@ for submission in all_subreddits.search(query=user_stock, limit=1000):
 df = pd.DataFrame(comments)
 df = df.set_axis(['title', 'date', 'subreddit'], axis=1, inplace=False)
 
-st.write(f"Number of comments about "{default_stock_goes_here}" that have been analyzed: {len(comments)}")
+st.write(f"Number of comments about - {default_stock_goes_here}- that have been analyzed: {len(comments)}")
 st.write(f"Date of the oldest comment: {df['date'].min()}")
 
 st.dataframe(df[:10])
@@ -76,3 +77,33 @@ st.markdown(
 
     """
 )
+# Aggregate the data by date and compute the mean sentiment for each date
+sentiment_by_date = df.groupby("date")["sentiment"].mean()
+
+stock_data = yf.Ticker(user_stock).history(start=df['date'].min(), end=datetime.datetime.now())
+stock_data.reset_index(inplace=True)
+stock_data.rename(columns={"Date": "date"}, inplace=True)
+stock_data.set_index("date", inplace=True)
+
+# Merge the sentiment data with the stock data
+combined_data = pd.concat([sentiment_by_date, stock_data["Close"]], axis=1)
+
+# Create the first trace for the sentiment data
+sentiment_plot = go.Scatter(x=combined_data.index, y=combined_data["sentiment"], name="Sentiment")
+
+# Create the second trace for the stock data
+stock_plot = go.Scatter(x=combined_data.index, y=combined_data["Close"], name="Stock Price", yaxis="y2")
+
+# Create the layout with two y-axes
+layout = go.Layout(
+    yaxis=dict(title="Sentiment"),
+    yaxis2=dict(title="Stock Price", overlaying="y", side="right")
+)
+
+# Create the figure with two traces and the specified layout
+figure = go.Figure(data=[sentiment_plot, stock_plot], layout=layout)
+
+# Display the figure using st.plotly_chart
+st.plotly_chart(figure)
+
+
