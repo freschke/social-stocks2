@@ -23,22 +23,33 @@ reddit = praw.Reddit(
 st.title("Social Stocks")
 
 default_stock_goes_here = "GME"
-user_stock = st.text_input("Search for a Stock", default_stock_goes_here)
+user_stock = st.text_input("Type in your stock (WKN for visualising the stock price)", default_stock_goes_here)
 
 all_subreddits = reddit.subreddit('all')
 df = pd.DataFrame(columns=['title', 'date'])
 comments = set()
+current_date = datetime.datetime.now()
+max_age = datetime.timedelta(days=365*2)
 
-# Search all subreddits using the search function
 for submission in all_subreddits.search(query=user_stock, limit=1000):
-    comments.add((submission.title, datetime.datetime.fromtimestamp(submission.created_utc).strftime('%Y-%m-%d'), submission.subreddit.display_name))
+  # Get the creation date of the comment
+  creation_date = datetime.datetime.fromtimestamp(submission.created_utc)
+
+  # Calculate the age of the comment
+  age = current_date - creation_date
+
+  # If the age of the comment is less than or equal to 2 years
+  if age <= max_age:
+    # Add the comment to the comments set
+    comments.add((submission.title, creation_date.strftime('%Y-%m-%d'), submission.subreddit.display_name))
 
 df = pd.DataFrame(comments)
 df = df.set_axis(['title', 'date', 'subreddit'], axis=1, inplace=False)
 
-st.write(f"Number of comments about - {default_stock_goes_here}- that have been analyzed: {len(comments)}")
+st.write(f"Number of comments about {user_stock} that have been analyzed: {len(comments)}")
 st.write(f"Date of the oldest comment: {df['date'].min()}")
 
+st.dataframe(df[:10])
 
 analyzer = SentimentIntensityAnalyzer()
 df['sentiment'] = 0.1
@@ -79,7 +90,7 @@ st.markdown(
 # Aggregate the data by date and compute the mean sentiment for each date
 sentiment_by_date = df.groupby("date")["sentiment"].mean()
 
-stock_data = yf.Ticker(user_stock).history(start=df['date'].min(), end=datetime.datetime.now())
+stock_data = yf.download(tickers=user_stock, start=df['date'].min(), end=datetime.datetime.now())
 stock_data.reset_index(inplace=True)
 stock_data.rename(columns={"Date": "date"}, inplace=True)
 stock_data.set_index("date", inplace=True)
@@ -102,7 +113,10 @@ layout = go.Layout(
 # Create the figure with two traces and the specified layout
 figure = go.Figure(data=[sentiment_plot, stock_plot], layout=layout)
 
+
 # Display the figure using st.plotly_chart
+
 st.plotly_chart(figure)
+st.markdown(f"Sentiment of the {len(comments)} comments & the corresponding stock price")
 
 
