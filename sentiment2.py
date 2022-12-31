@@ -39,7 +39,6 @@ df = df.set_axis(['title', 'date', 'subreddit'], axis=1, inplace=False)
 st.write(f"Number of comments about - {default_stock_goes_here}- that have been analyzed: {len(comments)}")
 st.write(f"Date of the oldest comment: {df['date'].min()}")
 
-st.dataframe(df[:10])
 
 analyzer = SentimentIntensityAnalyzer()
 df['sentiment'] = 0.1
